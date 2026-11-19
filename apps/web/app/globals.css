@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-ink text-slate-100 antialiased;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.card {
+  @apply rounded-2xl border border-white/10 bg-panel/80 p-6 shadow-lg shadow-black/20;
+}
+
+.pill {
+  @apply inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-xs font-medium;
+}

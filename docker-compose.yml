@@ -1,0 +1,132 @@
+name: shortsfactory
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shortsfactory}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shortsfactory}
+      POSTGRES_DB: ${POSTGRES_DB:-shortsfactory}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shortsfactory} -d ${POSTGRES_DB:-shortsfactory}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: ./apps/api
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-locally}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-to-a-random-32-byte-secret}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://shortsfactory:shortsfactory@postgres:5432/shortsfactory}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      MEDIA_ROOT: ${MEDIA_ROOT:-/app/data/media}
+      TEMP_ROOT: ${TEMP_ROOT:-/app/data/temp}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      TTS_PROVIDER: ${TTS_PROVIDER:-mock}
+      ALIGNMENT_PROVIDER: ${ALIGNMENT_PROVIDER:-mock}
+      DRY_RUN: ${DRY_RUN:-true}
+      UPLOAD_ENABLED: ${UPLOAD_ENABLED:-false}
+      PUBLISH_ENABLED: ${PUBLISH_ENABLED:-false}
+      APPROVAL_REQUIRED: ${APPROVAL_REQUIRED:-true}
+      GLOBAL_EMERGENCY_STOP: ${GLOBAL_EMERGENCY_STOP:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/api:/app
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    build:
+      context: ./apps/api
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://shortsfactory:shortsfactory@postgres:5432/shortsfactory}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      TTS_PROVIDER: ${TTS_PROVIDER:-mock}
+      ALIGNMENT_PROVIDER: ${ALIGNMENT_PROVIDER:-mock}
+      DRY_RUN: ${DRY_RUN:-true}
+      UPLOAD_ENABLED: ${UPLOAD_ENABLED:-false}
+      PUBLISH_ENABLED: ${PUBLISH_ENABLED:-false}
+      APPROVAL_REQUIRED: ${APPROVAL_REQUIRED:-true}
+    volumes:
+      - ./apps/api:/app
+      - ./data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["python", "-m", "app.workers.main"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.workers.healthcheck"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  web:
+    build:
+      context: ./apps/web
+    restart: unless-stopped
+    environment:
+      API_PROXY_TARGET: http://api:8000
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  redisdata:
