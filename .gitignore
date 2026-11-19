@@ -1,6 +1,7 @@
 # Secrets and local configuration
 .env
 .env.*
+*.env
 !.env.example
 *.pem
 *.key
@@ -9,6 +10,8 @@
 *credentials*.json
 .token
 .tokens/
+*.token
+*.tokens
 secrets/
 
 # Runtime data and private media
@@ -57,3 +60,5 @@ model-cache/
 tmp/
 temp/
 *.part
+.eslintcache
+*.tsbuildinfo
