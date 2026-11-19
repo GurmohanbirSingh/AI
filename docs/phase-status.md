@@ -97,3 +97,16 @@ not committed), no application code. Environment: Python 3.13.1, Node v23.5.0, n
   web image rebuild (documented in the Dockerfile).
 
 **Gate decision:** `PASS` for Phase 1.
+
+### 2026-11-20 — Phase 1 audit follow-up (Codex)
+
+- Updated `scripts/smoke_phase1.sh` to store the login response in a unique temporary
+  file and remove it with the cookie jar on exit. Updated
+  `docs/audits/phase-01-codex-review.md` to record the finding as resolved.
+- `bash scripts/smoke_phase1.sh` — PASS (exit 0); all five Compose services healthy;
+  health endpoint, unauthenticated dashboard rejection, login through the web proxy,
+  authenticated dashboard, web shell, and CSRF logout checks succeeded.
+- Initial sandbox attempt failed before starting the stack with Docker socket permission
+  denied; the same command was rerun with approved Docker access and passed.
+- No other test suites were rerun. Docker Compose services were live locally; paid APIs,
+  OAuth, YouTube, and external model providers were not contacted.

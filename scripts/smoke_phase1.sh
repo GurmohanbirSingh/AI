@@ -17,7 +17,8 @@ if [ -z "${admin_password}" ]; then
 fi
 
 cookie_jar="$(mktemp)"
-trap 'rm -f "${cookie_jar}"' EXIT
+login_body="$(mktemp)"
+trap 'rm -f "${cookie_jar}" "${login_body}"' EXIT
 
 step() { echo "== $*"; }
 fail() { echo "FAIL: $*" >&2; exit 1; }
@@ -38,13 +39,13 @@ status="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/api/dashb
 [ "${status}" = "401" ] || fail "expected 401 for anonymous dashboard, got ${status}"
 
 step "Login through the web proxy sets a session"
-status="$(curl -s -o /tmp/sf_login_body -w '%{http_code}' \
+status="$(curl -s -o "${login_body}" -w '%{http_code}' \
   -c "${cookie_jar}" \
   -H 'Content-Type: application/json' \
   -d "{\"password\":\"${admin_password}\"}" \
   http://localhost:3000/api/auth/login)"
 [ "${status}" = "200" ] || fail "login failed with HTTP ${status}"
-csrf="$(python3 -c 'import json,sys; print(json.load(open("/tmp/sf_login_body"))["csrf_token"])')"
+csrf="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["csrf_token"])' "${login_body}")"
 [ -n "${csrf}" ] || fail "login response did not include a CSRF token"
 
 step "Authenticated session can read dashboard status through the proxy"
