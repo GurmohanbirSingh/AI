@@ -1,0 +1,59 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*oauth*.json
+*client_secret*.json
+*credentials*.json
+.token
+.tokens/
+secrets/
+
+# Runtime data and private media
+/data/
+/media/
+/assets/private/
+*.mp4
+*.mov
+*.mkv
+*.wav
+*.mp3
+*.png.tmp
+*.jpg.tmp
+*.pdf.private
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node / Next.js
+node_modules/
+.next/
+dist/
+build/
+coverage/
+
+# Tooling and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# Local model weights / caches
+.ollama/
+models/
+model-cache/
+.cache/
+
+# Temporary render/test output
+tmp/
+temp/
+*.part
